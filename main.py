@@ -186,7 +186,7 @@ class Bot(commands.Bot):
         print(f'Bot has logged in as {bot.user}')
         add_guild()
         timer = Timer(1800, voice_channel_check)
-        time.start()
+        timer.start()
         bot.dbList = list_guilds()
 
     @commands.Cog.listener()
