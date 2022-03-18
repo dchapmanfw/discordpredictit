@@ -101,6 +101,19 @@ def voiceChannelCheck():
     this = Timer(1800, voiceChannelCheck)
     this.start()
 
+def printLeaderBoard(ctx):
+    name_list = list()
+    vcList = list()
+    text = 10*'<:fire_chichen:941754253729497188>'
+    name_list.append(text)
+    for guild in bot.guilds:
+        notNeeded, collection = findTheirGuild(guild.name)
+        for user in collection.find().sort('points',-1):
+          text = f'{user["name"]} has {user["points"]} <:fire_chichen:941754253729497188>s '
+          name_list.append(text)
+        text = 10*'<:fire_chichen:941754253729497188>'
+        name_list.append(text)
+        return name_list
 
 '''
 These functions below are used only for refunding, 
@@ -393,9 +406,21 @@ class Points(commands.Cog):
             await ctx.send(text)
             pass
 
-    # I haven't actually considered if they take more than what they have so be aware of that not that important to me at the moment
+    @commands.command(name='print', description=giveComDescription)
+    async def printChichenLeaders(self, ctx):
+        leader_board_rows = printLeaderBoard(ctx)
+        txt = ''
+        for row in leader_board_rows:
+          txt += row
+          txt += '\r\n'
+          if len(txt) > 1600:
+            await ctx.send(txt)
+            txt = ''
+        await ctx.send(txt)
+
+      
+      # I haven't actually considered if they take more than what they have so be aware of that not that important to me at the moment
     @commands.command(name='take', description="Takes points from specific member, you have to type their discord NAME (Only admins can use).")
-    @has_permissions(manage_roles=True, ban_members=True)
     async def takePts(self, ctx, take_Member: str, amount: int):
         bot.userDB, bot.userCollection = findTheirGuild(ctx.author.guild.name)
         thisMember = bot.userCollection.find({"name": take_Member})
