@@ -14,6 +14,7 @@ import datetime
 intents = discord.Intents.all()
 believe_pool, doubt_pool, global_dict, guild_member, payout_pool = {}, {}, {}, {}, {}
 global posts, cluster
+MAX_CHARACTERS_TO_SEND_AT_ONCE = 1600
 START_COM_DESCRIPTION = "If the title/blv/dbt is more than one word use \"\". t is the time and is in seconds i.e. t = 120 = 2 minutes (Only admins can use)"
 GIVE_COM_DESCRIPTION = "Gives points to specific member, you have to type their discord NAME (Only admins can use)."
 REFUND_COM_DESCRIPTION = "Refunds points and stops prediction (Only admins can use)."
@@ -106,11 +107,10 @@ def print_leader_board(ctx):
   chichen_string = 10*'<:fire_chichen:941754253729497188>' + '\r\n'
   serve_up_those_chichen_cut_strings = list()
   for guild in bot.guilds:
-    print(guild)
     notNeeded, collection = find_their_guild(guild.name)
     for user in collection.find().sort('points',-1):
       chichen_string += f'{user["name"]} has {user["points"]} <:fire_chichen:941754253729497188>s \r\n'
-      if len(chichen_string) > 1600:
+      if len(chichen_string) > MAX_CHARACTERS_TO_SEND_AT_ONCE:
         serve_up_those_chichen_cut_strings.append(chichen_string)
         chichen_string = ''
     chichen_string += 10*'<:fire_chichen:941754253729497188>'
