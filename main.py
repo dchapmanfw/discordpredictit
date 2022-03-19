@@ -101,7 +101,19 @@ def voice_channel_check():
     # restarts the function every 30 min
     timer = Timer(1800, voice_channel_check)
     timer.start()
-
+  
+def print_leader_board(ctx):
+    name_list = list()
+    text = 10*'<:fire_chichen:941754253729497188>'
+    name_list.append(text)
+    for guild in bot.guilds:
+        notNeeded, collection = find_their_guild(guild.name)
+        for user in collection.find().sort('points',-1):
+          text = f'{user["name"]} has {user["points"]} <:fire_chichen:941754253729497188>s '
+          name_list.append(text)
+        text = 10*'<:fire_chichen:941754253729497188>'
+        name_list.append(text)
+        return name_list
 
 '''
 These functions below are used only for refunding,
@@ -420,7 +432,20 @@ class Points(commands.Cog):
         user_points = functions.show_points(thisMember)
         text = f"{user_mention} you have {user_points} chichens <:fire_chichen:941754253729497188>"
         await ctx.send(text)
+      
+    @commands.command(name='print', description="print leader board of chichens")
+    async def print_chichen_board(self, ctx):
+        leader_board_rows = print_leader_board(ctx)
+        txt = ''
+        for row in leader_board_rows:
+          txt += row
+          txt += '\r\n'
+          if len(txt) > 1600:
+            await ctx.send(txt)
+            txt = ''
+        await ctx.send(txt)
 
+      
 keep_alive()
 bot = Bot()
 bot.run(TOKEN)
