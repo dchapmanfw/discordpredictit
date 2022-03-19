@@ -12,12 +12,12 @@ import math
 import datetime
 # global vars
 intents = discord.Intents.all()
-believePool, doubtPool, globalDict, guildMember, payOutPool = {}, {}, {}, {}, {}
+believe_pool, doubt_pool, global_dict, guild_member, payout_pool = {}, {}, {}, {}, {}
 global posts, cluster
-startComDescription = "If the title/blv/dbt is more than one word use \"\". t is the time and is in seconds i.e. t = 120 = 2 minutes (Only admins can use)"
-giveComDescription = "Gives points to specific member, you have to type their discord NAME (Only admins can use)."
-refundComDescription = "Refunds points and stops prediction (Only admins can use)."
-wonComDescription = "Sets win after a prediction has started, side = \"blv\" or \"dbt\" (Only admins can use)."
+START_COM_DESCRIPTION = "If the title/blv/dbt is more than one word use \"\". t is the time and is in seconds i.e. t = 120 = 2 minutes (Only admins can use)"
+GIVE_COM_DESCRIPTION = "Gives points to specific member, you have to type their discord NAME (Only admins can use)."
+REFUND_COM_DESCRIPTION = "Refunds points and stops prediction (Only admins can use)."
+WON_COM_DESCRIPTION = "Sets win after a prediction has started, side = \"blv\" or \"dbt\" (Only admins can use)."
 TOKEN, GUILD, CHANNEL1, CHANNEL2, CHANNEL3 = os.getenv("Token"), os.getenv("Guild"), os.getenv("Channel1"), os.getenv("Channel2"), os.getenv("Channel3")
 CLUSTER_LINK, CLUSTER_ELEMENT, DB_ELEMENT = os.getenv("ClusterLink"), os.getenv("PointsData"), os.getenv("UserPoints")
 cluster = MongoClient(CLUSTER_LINK)
@@ -32,12 +32,12 @@ only reason why it isn't just one DB is because I was getting dup errors for it 
 '''
 
 
-def addGuild():
+def add_guild():
     global posts
     guilds = bot.guilds
     dbList = cluster.list_database_names()
     for guild in guilds:
-        thisGuild = functions.removeSpace(guild.name)
+        thisGuild = functions.remove_space(guild.name)
         posts = []
         if thisGuild not in dbList:
             collectionName = f"{thisGuild} Points"
@@ -55,22 +55,22 @@ I'm not sure if I need to return the database though.
 '''
 
 
-def findTheirGuild(guildName):
-    newGuildNameStr = functions.removeSpace(guildName)
-    if newGuildNameStr in bot.dbList:
-        db = cluster[newGuildNameStr]
-        collection = db[f"{newGuildNameStr} Points"]
+def find_their_guild(guild_name):
+    new_guild_name = functions.remove_space(guild_name)
+    if new_guild_name in bot.dbList:
+        db = cluster[new_guild_name]
+        collection = db[f"{new_guild_name} Points"]
         return db, collection
     else:
         pass
 
 
 # this just gets a list of all the guilds but actually makes it usable to find it in mongoDB
-def listGuild():
+def list_guilds():
     guilds = bot.guilds
     for guild in guilds:
-        guildCutSpace = functions.removeSpace(str(guild.name))
-        bot.dbList.append(guildCutSpace)
+        guild_name_without_spaces = functions.remove_space(str(guild.name))
+        bot.dbList.append(guild_name_without_spaces)
     return bot.dbList
 
 
@@ -81,53 +81,54 @@ with the given channels. You could copy/paste per channel for each server but th
 '''
 
 
-# FIXED, now checks through every guild and vc and if someone is in there they get a random int between 90-125 you can change if you want
-def voiceChannelCheck():
-    vcList = []
+# FIXED (really bro?), now checks through every guild and vc and if someone is in there they get a random int between 90-125 you can change if you want
+# TODO: Make this clearer and better
+def voice_channel_check():
+    voice_channels = []
     for guild in bot.guilds:
-        notNeeded, collection = findTheirGuild(guild.name)
+        notNeeded, collection = find_their_guild(guild.name)
         for channel in guild.voice_channels:
-            vcList.append(channel)
-        for vc in vcList:
+            voice_channels.append(channel)
+        for vc in voice_channels:
             if len(vc.members) > 0:
                 for person in vc.members:
                     points = random.randint(90, 125)
-                    userPoints = functions.showPoints(collection.find({"name": person.name})) + points
-                    collection.update_one({"name": person.name}, {"$set": {"points": userPoints}})
+                    user_points = functions.show_points(collection.find({"name": person.name})) + points
+                    collection.update_one({"name": person.name}, {"$set": {"points": user_points}})
             else:
                 pass
-        vcList = []
+        voice_channels = []
     # restarts the function every 30 min
-    this = Timer(1800, voiceChannelCheck)
-    this.start()
+    timer = Timer(1800, voice_channel_check)
+    timer.start()
 
 
 '''
-These functions below are used only for refunding, 
+These functions below are used only for refunding,
 just takes back the points from the dict and adds them back to DB
-and then resetAllDicts() calls the latter function and clears all dicts afterwards
+and then reset_all_dicts() calls the latter function and clears all dicts afterwards
 '''
 
 
-def resetAllDicts():
-    globalDict.clear()
+def reset_all_dicts():
+    global_dict.clear()
     refund_dicts()
-    believePool.clear()
-    doubtPool.clear()
+    believe_pool.clear()
+    doubt_pool.clear()
 
 
 def refund_dicts():
     # refund Believe Pool Points
-    for k, v in believePool.items():
-        userPoints = functions.showPoints(bot.betCollection.find({"name": k}))
-        bot.betCollection.update_one({"name": k}, {"$set": {"points": userPoints + v}})
+    for k, v in believe_pool.items():
+        user_points = functions.show_points(bot.bet_collection.find({"name": k}))
+        bot.bet_collection.update_one({"name": k}, {"$set": {"points": user_points + v}})
     # refund Doubt Pool Points
-    for k, v in doubtPool.items():
-        userPoints = functions.showPoints(bot.betCollection.find({"name": k}))
-        bot.betCollection.update_one({"name": k}, {"$set": {"points": userPoints + v}})
+    for k, v in doubt_pool.items():
+        user_points = functions.show_points(bot.bet_collection.find({"name": k}))
+        bot.bet_collection.update_one({"name": k}, {"$set": {"points": user_points + v}})
 
 
-''' 
+'''
 Used for mongoDB which assigns their id name and gives them at least 1000 points, this can be changed
 if you want to only assign them their name and increase the amount of points.
 '''
@@ -139,57 +140,56 @@ def get_members(guild, guildCollection):
     for person in posts:
         guildCollection.insert_one(person)
 
-
-# basically whenever tries to place a bet it first checks if its past the timer or not, if not then their bets are placed
-def timeCheck():
+#TODO[dchapmanfw] UN-shitify this check for bot.end_time once the code base won't break when I do it
+def time_check():
     now = datetime.datetime.now()
-    if now < bot.endTime:
+    if type(bot.end_time) == datetime.datetime and (now < bot.end_time):
         return True
     else:
-        return bot.endTime
+        return False
 
 
 '''
 After every win it calls the bot collection that was set during $start command and gives the user's percentage of the pool + their own amount that they put in.
 Note: I believe that there is some point loss overall since their points are truncated, you don't have to use math.
-If you want you can just give them any decimal/leftover points, 
+If you want you can just give them any decimal/leftover points,
 but if you want displays to look nice you should format strings involving nums. Do whatever you want with that though I just think its easier this way.
 and take into consideration the percentages too if you do.
 '''
 
 
-def giveAmountWon(loserPool, winnerPool):
+def give_amount_won(loserPool, winnerPool):
     loserSum = sum(loserPool.values())
     winnerSum = sum(winnerPool.values())
     for k, v in winnerPool.items():
-        userPoints = functions.showPoints(bot.betCollection.find({"name": k}))
+        user_points = functions.show_points(bot.bet_collection.find({"name": k}))
         x = v / winnerSum
         amount = x * loserSum + v
         amount = math.trunc(amount)
-        bot.betCollection.update_one({"name": k}, {"$set": {"points": userPoints + amount}})
-        payOutPool[k] = amount
+        bot.bet_collection.update_one({"name": k}, {"$set": {"points": user_points + amount}})
+        payout_pool[k] = amount
 
 
 class Bot(commands.Bot):
     def __init__(self):
         super(Bot, self).__init__(command_prefix=['$'], intents=intents, case_insensitive=True)
-        self.Timer, self.endTime, self.startText = None, None, None
-        self.blvPercent, self.dbtPercent, self._last_member = None, None, None
-        self.predictionDB, self.betCollection = None, None
+        self.timer, self.end_time, self.start_text = None, None, None
+        self.believe_percent, self.doubt_percent, self._last_member = None, None, None
+        self.prediction_db, self.bet_collection = None, None
         self.dbList = []
         self.add_cog(Predictions(self))
         self.add_cog(Points(self))
 
-    async def on_ready(self):
+    async def on_ready(self):  # chemotherapy needed here
         print(f'Bot has logged in as {bot.user}')
-        addGuild()
-        this = Timer(1800, voiceChannelCheck)
-        this.start()
-        bot.dbList = listGuild()
+        add_guild()
+        timer = Timer(1800, voice_channel_check)
+        timer.start()
+        bot.dbList = list_guilds()
 
     @commands.Cog.listener()
     async def on_guild_join(self):
-        addGuild()
+        add_guild()
         pass
 
 
@@ -198,29 +198,29 @@ class Predictions(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.message = None
-        self.StartMessage = None
+        self.start_message = None
 
-    @commands.command(aliases=['set'], description=startComDescription)
-    async def start(self, ctx, title, t: int, blv, dbt):
-        bot.predictionDB, bot.betCollection = findTheirGuild(ctx.author.guild.name)
-        globalDict['blv'], globalDict['dbt'] = blv, dbt
-        globalDict['title'], globalDict['Total'] = title, 0
-        bot.Timer = t
-        bot.endTime = datetime.datetime.now() + datetime.timedelta(seconds=t)
+    @commands.command(aliases=['set'], description=START_COM_DESCRIPTION)
+    async def start(self, ctx, title, t: int, blv, dbt):  # oh god it's metastacized
+        bot.prediction_db, bot.bet_collection = find_their_guild(ctx.author.guild.name)
+        global_dict['blv'], global_dict['dbt'] = blv, dbt
+        global_dict['title'], global_dict['Total'] = title, 0
+        bot.timer = t
+        bot.end_time = datetime.datetime.now() + datetime.timedelta(seconds=t)
         minutes, secs = divmod(t, 60)
         timer = '{:02d}:{:02d}'.format(minutes, secs)
-        text = functions.startText(title, blv, dbt, timer)
+        text = functions.start_text(title, blv, dbt, timer)
         message = await ctx.send(text)
-        while bot.Timer >= 0:
-            minutes, secs = divmod(bot.Timer, 60)
+        while bot.timer >= 0:
+            minutes, secs = divmod(bot.timer, 60)
             timer = '{:02d}:{:02d}'.format(minutes, secs)
             time.sleep(1)
-            bot.Timer -= 1
-            await message.edit(content=functions.startText(title, blv, dbt, timer))
-        await ctx.invoke(self.bot.get_command('closeSubmissions'))
+            bot.timer -= 1
+            await message.edit(content=functions.start_text(title, blv, dbt, timer))
+        await ctx.invoke(self.bot.get_command('close_submissions'))
 
     @start.error
-    async def start_error(self, ctx, error):
+    async def start_error(self, ctx, error):  # just take it out behind the shed
         if isinstance(error, MissingPermissions):
             text = f"Sorry {ctx.message.author.mention}, you do not have permissions to do that!"
             await ctx.send(ctx.message.channel, text)
@@ -229,41 +229,41 @@ class Predictions(commands.Cog):
     # another thing to note is that if you bet on dbt, you can't bet blv or if you have no points you aren't allowed to bet
     # it also adds to your previous amount if you have previously bet on this side
     @commands.command(aliases=['believe', 'blv'])
-    async def betBelieve(self, ctx, amount: int):
-        user, userMention, thisTime = ctx.message.author.name, ctx.message.author.mention, timeCheck()
-        if isinstance(thisTime, bool):
-            userDB = bot.betCollection.find({"name": user})
-            userPoints = functions.showPoints(userDB)
-            userPoints -= amount
-            if user in doubtPool:
-                text = f"You've chosen your side already {userMention} <:derp:953081066565038130>"
+    async def bet_believe(self, ctx, amount: int):  # there's no hope
+        user, user_mention, this_time = ctx.message.author.name, ctx.message.author.mention, time_check()
+        if this_time:
+            user_db = bot.bet_collection.find({"name": user})
+            user_points = functions.show_points(user_db)
+            user_points -= amount
+            if user in doubt_pool:
+                text = f"You've chosen your side already {user_mention} <:derp:953081066565038130>"
                 await ctx.send(text)
                 pass
-            elif userPoints < 0:
-                userPoints += amount
-                fail_amount_text = f"{userMention} you don't have that many points... <:sadpepe:942964907463307276> \n" \
-                                   f"You have {userPoints} points "
+            elif user_points < 0:
+                user_points += amount
+                fail_amount_text = f"{user_mention} you don't have that many points... <:sadpepe:942964907463307276> \n" \
+                                   f"You have {user_points} points "
                 await ctx.send(fail_amount_text)
                 pass
-            elif user in believePool and userPoints > 0:
-                believePool[user] += amount
-                globalDict['Total'] += amount
-                blvPercent, dbtPercent = functions.percentage(believePool, doubtPool, globalDict)
-                text = functions.userInputPts(userMention, amount, blvPercent, dbtPercent, 'blv', globalDict, believePool, doubtPool)
-                bot.betCollection.update_one({"name": user}, {"$set": {"points": userPoints}})
+            elif user in believe_pool and user_points > 0:
+                believe_pool[user] += amount
+                global_dict['Total'] += amount
+                believe_percent, doubt_percent = functions.percentage(believe_pool, doubt_pool, global_dict)
+                text = functions.user_input_points(user_mention, amount, believe_percent, doubt_percent, 'blv', global_dict, believe_pool, doubt_pool)
+                bot.bet_collection.update_one({"name": user}, {"$set": {"points": user_points}})
                 await ctx.send(text)
                 pass
             else:
-                globalDict['Total'] += amount
-                believePool[user] = amount
-                blvPercent, dbtPercent = functions.percentage(believePool, doubtPool, globalDict)
-                text = functions.userInputPts(userMention, amount, blvPercent, dbtPercent, 'blv', globalDict, believePool, doubtPool)
-                bot.betCollection.update_one({"name": user}, {"$set": {"points": userPoints}})
+                global_dict['Total'] += amount
+                believe_pool[user] = amount
+                believe_percent, doubt_percent = functions.percentage(believe_pool, doubt_pool, global_dict)
+                text = functions.user_input_points(user_mention, amount, believe_percent, doubt_percent, 'blv', global_dict, believe_pool, doubt_pool)
+                bot.bet_collection.update_one({"name": user}, {"$set": {"points": user_points}})
                 await ctx.send(text)
                 pass
             pass
         else:
-            text = f"{userMention} Submissions have closed! <:mikesass:907000839246315650>"
+            text = f"{user_mention} Submissions have closed! <:mikesass:907000839246315650>"
             await ctx.send(text)
             pass
 
@@ -271,64 +271,65 @@ class Predictions(commands.Cog):
     # another thing to note is that if you bet on blv you can't bet dbt or if you have no points you aren't allowed to bet
     # it also adds to your previous amount if you have previously bet on this side
     @commands.command(aliases=['doubt', 'dbt'])
-    async def betDoubt(self, ctx, amount: int):
-        user, userMention, thisTime = ctx.message.author.name, ctx.message.author.mention, timeCheck()
-        if isinstance(thisTime, bool):
-            userDB = bot.betCollection.find({"name": user})
-            userPoints = functions.showPoints(userDB)
-            userPoints -= amount
-            if user in believePool:
-                text = f"You've chosen your side already {userMention} <:derp:953081066565038130>"
+    async def bet_doubt(self, ctx, amount: int):  # why did I even start?
+        user, user_mention, this_time = ctx.message.author.name, ctx.message.author.mention, time_check()
+        if this_time:
+            user_db = bot.bet_collection.find({"name": user})
+            user_points = functions.show_points(user_db)
+            user_points -= amount
+            if user in believe_pool:
+                text = f"You've chosen your side already {user_mention} <:derp:953081066565038130>"
                 await ctx.send(text)
                 pass
-            elif userPoints < 0:
-                userPoints += amount
-                fail_amount_text = f"{userMention} you don't have that many points...<:sadpepe:942964907463307276> \n"\
-                                   f"You have {userPoints} points "
+            elif user_points < 0:
+                user_points += amount
+                fail_amount_text = f"{user_mention} you don't have that many points...<:sadpepe:942964907463307276> \n"\
+                                   f"You have {user_points} points "
                 await ctx.send(fail_amount_text)
                 pass
-            elif user in doubtPool and userPoints > 0:
-                doubtPool[user] += amount
-                globalDict['Total'] += amount
-                blvPercent, dbtPercent = functions.percentage(believePool, doubtPool, globalDict)
-                text = functions.userInputPts(userMention, amount, blvPercent, dbtPercent, 'dbt', globalDict,
-                                              believePool, doubtPool)
-                bot.betCollection.update_one({"name": user}, {"$set": {"points": userPoints}})
+            elif user in doubt_pool and user_points > 0:
+                doubt_pool[user] += amount
+                global_dict['Total'] += amount
+                believe_percent, doubt_percent = functions.percentage(believe_pool, doubt_pool, global_dict)
+                text = functions.user_input_points(user_mention, amount, believe_percent, doubt_percent, 'dbt', global_dict,
+                                              believe_pool, doubt_pool)
+                bot.bet_collection.update_one({"name": user}, {"$set": {"points": user_points}})
                 await ctx.send(text)
                 pass
             else:
-                globalDict['Total'] += amount
-                doubtPool[user] = amount
-                blvPercent, dbtPercent = functions.percentage(believePool, doubtPool, globalDict)
-                text = functions.userInputPts(userMention, amount, blvPercent, dbtPercent, 'dbt', globalDict,
-                                              believePool, doubtPool)
-                bot.betCollection.update_one({"name": user}, {"$set": {"points": userPoints}})
+                global_dict['Total'] += amount
+                doubt_pool[user] = amount
+                believe_percent, doubt_percent = functions.percentage(believe_pool, doubt_pool, global_dict)
+                text = functions.user_input_points(user_mention, amount, believe_percent, doubt_percent, 'dbt', global_dict,
+                                              believe_pool, doubt_pool)
+                bot.bet_collection.update_one({"name": user}, {"$set": {"points": user_points}})
                 await ctx.send(text)
                 pass
             pass
         else:
-            text = f"{userMention} Submissions have closed! <:mikesass:907000839246315650>"
+            text = f"{user_mention} Submissions have closed! <:mikesass:907000839246315650>"
             await ctx.send(text)
             pass
 
     # set winner command
-    @commands.command(name='won', description=wonComDescription)
+    @commands.command(name='won', description=WON_COM_DESCRIPTION)
     async def winner(self, ctx, side: str):
-        pool, title, blv, dbt, blvSum, dbtSum = functions.returnValues(believePool, doubtPool, globalDict)
-        blvPercent, dbtPercent = functions.percentage(believePool, doubtPool, globalDict)
+        pool, title, blv, dbt, believe_sum, doubt_sum = functions.return_values(believe_pool, doubt_pool, global_dict)
+        believe_percent, doubt_percent = functions.percentage(believe_pool, doubt_pool, global_dict)
+        # TODO: Big DRY
         if side == "believe" or side == "blv":
-            giveAmountWon(doubtPool, believePool)
-            winnerBlvText = functions.returnWinText(title, blv, blvPercent, dbtPercent, 'blv', believePool, doubtPool, payOutPool)
-            bot.blvPercent, bot.dbtPercent = None, None
-            functions.resetAfterWin(globalDict, believePool, doubtPool, payOutPool)
-            await ctx.send(winnerBlvText)
+            give_amount_won(doubt_pool, believe_pool)
+            winner_text = functions.return_win_text(title, blv, believe_percent, doubt_percent, 'blv', believe_pool, doubt_pool, payout_pool)
+            bot.believe_percent, bot.doubt_percent = None, None
+            functions.reset_after_win(global_dict, believe_pool, doubt_pool, payout_pool)
+            await ctx.send(winner_text)
             pass
         elif side == "doubt" or side == "dbt":
-            giveAmountWon(believePool, doubtPool)
-            winnerDbtText = functions.returnWinText(title, dbt, blvPercent, dbtPercent, 'dbt', believePool, doubtPool, payOutPool)
-            bot.blvPercent, bot.dbtPercent = None, None
-            functions.resetAfterWin(globalDict, believePool, doubtPool, payOutPool)
-            await ctx.send(winnerDbtText)
+            give_amount_won(believe_pool, doubt_pool)
+            winner_text = functions.return_win_text(title, dbt, believe_percent, doubt_percent, 'dbt', believe_pool, doubt_pool, payout_pool)
+            bot.believe_percent, bot.doubt_percent = None, None
+            functions.reset_after_win(global_dict, believe_pool, doubt_pool, payout_pool)
+            await ctx.send(winner_text)
             pass
 
     @winner.error
@@ -338,10 +339,10 @@ class Predictions(commands.Cog):
             await ctx.send(text)
             pass
 
-    @commands.command(aliases=['reset'], description=refundComDescription)
+    @commands.command(aliases=['reset'], description=REFUND_COM_DESCRIPTION)
     async def refund(self, ctx):
-        resetAllDicts()
-        bot.blvPercent, bot.dbtPercent = None, None
+        reset_all_dicts()
+        bot.believe_percent, bot.doubt_percent = None, None
         refund_text = "The prediction has ended early, refunding your chichens <:sadpepe:942964907463307276>"
         await ctx.send(refund_text)
 
@@ -352,17 +353,17 @@ class Predictions(commands.Cog):
             await ctx.send(ctx.message.channel, text)
 
     @commands.command(aliases=['close', 'stop'])
-    async def closeSubmissions(self, ctx):
-        endText = functions.endText(believePool, doubtPool, globalDict)
-        if bot.Timer == 0:
-            await ctx.send(endText)
+    async def close_submissions(self, ctx):
+        end_text = functions.end_text(believe_pool, doubt_pool, global_dict)
+        if bot.timer == 0:
+            await ctx.send(end_text)
         else:
-            bot.endTime = bot.endTime - datetime.timedelta(seconds=bot.Timer)
-            bot.Timer = 0
-            await ctx.send(endText)
-        bot.endTime, bot.Timer = None, None
+            bot.end_time = bot.end_time - datetime.timedelta(seconds=bot.timer)
+            bot.timer = 0
+            await ctx.send(end_text)
+        bot.end_time, bot.timer = None, None
 
-    @closeSubmissions.error
+    @close_submissions.error
     async def close_error(self, ctx, error):
         if isinstance(error, MissingPermissions):
             text = f"Sorry {ctx.message.author.mention}, you do not have permissions to do that!"
@@ -374,19 +375,19 @@ class Points(commands.Cog):
     def __init__(self, bot):
         self.message = None
         self.bot = bot
-        self.userCollection = None
-        self.userDB = None
+        self.user_collection = None
+        self.user_db = None
 
-    @commands.command(name='give', description=giveComDescription)
-    async def givePts(self, ctx, give_Member: str, amount: int):
-        bot.userDB, bot.userCollection = findTheirGuild(ctx.author.guild.name)
-        thisMember = bot.userCollection.find({"name": give_Member})
-        userPoints = functions.showPoints(thisMember) + amount
-        bot.userCollection.update_one({"name": give_Member}, {"$set": {"points": userPoints}})
-        text = f"{give_Member} you have {userPoints} chichens <:fire_chichen:941754253729497188> <:fire_chichen:941754253729497188> <:fire_chichen:941754253729497188> <:fire_chichen:941754253729497188>"
+    @commands.command(name='give', description=GIVE_COM_DESCRIPTION)
+    async def give_points(self, ctx, give_Member: str, amount: int):
+        bot.user_db, bot.user_collection = find_their_guild(ctx.author.guild.name)
+        thisMember = bot.user_collection.find({"name": give_Member})
+        user_points = functions.show_points(thisMember) + amount
+        bot.user_collection.update_one({"name": give_Member}, {"$set": {"points": user_points}})
+        text = f"{give_Member} you have {user_points} chichens <:fire_chichen:941754253729497188> <:fire_chichen:941754253729497188> <:fire_chichen:941754253729497188> <:fire_chichen:941754253729497188>"
         await ctx.send(text)
 
-    @givePts.error
+    @give_points.error
     async def give_error(self, ctx, error):
         if isinstance(error, MissingPermissions):
             text = f"Sorry {ctx.message.author.mention}, you do not have permissions to do that!"
@@ -396,15 +397,15 @@ class Points(commands.Cog):
     # I haven't actually considered if they take more than what they have so be aware of that not that important to me at the moment
     @commands.command(name='take', description="Takes points from specific member, you have to type their discord NAME (Only admins can use).")
     @has_permissions(manage_roles=True, ban_members=True)
-    async def takePts(self, ctx, take_Member: str, amount: int):
-        bot.userDB, bot.userCollection = findTheirGuild(ctx.author.guild.name)
-        thisMember = bot.userCollection.find({"name": take_Member})
-        userPoints = functions.showPoints(thisMember) - amount
-        bot.userCollection.update_one({"name": take_Member}, {"$set": {"points": userPoints}})
-        text = f"{take_Member} you have {userPoints} chichens <:fire_chichen:941754253729497188> <:sadpepe:942964907463307276>"
+    async def take_points(self, ctx, take_Member: str, amount: int):
+        bot.user_db, bot.user_collection = find_their_guild(ctx.author.guild.name)
+        thisMember = bot.user_collection.find({"name": take_Member})
+        user_points = functions.show_points(thisMember) - amount
+        bot.user_collection.update_one({"name": take_Member}, {"$set": {"points": user_points}})
+        text = f"{take_Member} you have {user_points} chichens <:fire_chichen:941754253729497188> <:sadpepe:942964907463307276>"
         await ctx.send(text)
 
-    @takePts.error
+    @take_points.error
     async def give_error(self, ctx, error):
         if isinstance(error, MissingPermissions):
             text = f"Sorry {ctx.message.author.mention}, you do not have permissions to do that!"
@@ -412,12 +413,12 @@ class Points(commands.Cog):
             pass
 
     @commands.command(aliases=['chichens','points', 'pts', 'chichen'], description="Shows your chichens")
-    async def askChkn(self, ctx):
-        user, userMention = ctx.message.author.name, ctx.message.author.mention
-        bot.userDB, bot.userCollection = findTheirGuild(ctx.author.guild.name)
-        thisMember = bot.userCollection.find({"name": user})
-        userPoints = functions.showPoints(thisMember)
-        text = f"{userMention} you have {userPoints} chichens <:fire_chichen:941754253729497188>"
+    async def ask_chicken(self, ctx):
+        user, user_mention = ctx.message.author.name, ctx.message.author.mention
+        bot.user_db, bot.user_collection = find_their_guild(ctx.author.guild.name)
+        thisMember = bot.user_collection.find({"name": user})
+        user_points = functions.show_points(thisMember)
+        text = f"{user_mention} you have {user_points} chichens <:fire_chichen:941754253729497188>"
         await ctx.send(text)
 
 keep_alive()
