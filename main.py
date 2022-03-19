@@ -103,7 +103,7 @@ def voice_channel_check():
     timer = Timer(1800, voice_channel_check)
     timer.start()
 
-def print_leader_board(ctx):
+def fetch_leader_board(ctx):
   chichen_string = 10*'<:fire_chichen:941754253729497188>' + '\r\n'
   serve_up_those_chichen_cut_strings = list()
   for guild in bot.guilds:
@@ -438,7 +438,7 @@ class Points(commands.Cog):
       
     @commands.command(name='print', description="print leader board of chichens")
     async def print_chichen_board(self, ctx):
-      chichen_cut_strings = print_leader_board(ctx)
+      chichen_cut_strings = fetch_leader_board(ctx)
       for chichen_string in chichen_cut_strings:
         await ctx.send(chichen_string)
 
