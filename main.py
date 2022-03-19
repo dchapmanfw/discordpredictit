@@ -145,10 +145,10 @@ def get_members(guild, guildCollection):
 # TODO: make this return either a bool or a time
 def time_check():
     now = datetime.datetime.now()
-    if now < bot.end_time:
+    if type(bot.end_time) == datetime.datetime and (now < bot.end_time):
         return True
     else:
-        return bot.end_time
+        return False
 
 
 '''
@@ -233,7 +233,7 @@ class Predictions(commands.Cog):
     @commands.command(aliases=['believe', 'blv'])
     async def bet_believe(self, ctx, amount: int):  # there's no hope
         user, user_mention, this_time = ctx.message.author.name, ctx.message.author.mention, time_check()
-        if isinstance(this_time, bool):
+        if this_time:
             user_db = bot.bet_collection.find({"name": user})
             user_points = functions.show_points(user_db)
             user_points -= amount
@@ -275,7 +275,7 @@ class Predictions(commands.Cog):
     @commands.command(aliases=['doubt', 'dbt'])
     async def bet_doubt(self, ctx, amount: int):  # why did I even start?
         user, user_mention, this_time = ctx.message.author.name, ctx.message.author.mention, time_check()
-        if isinstance(this_time, bool):
+        if this_time:
             user_db = bot.bet_collection.find({"name": user})
             user_points = functions.show_points(user_db)
             user_points -= amount
