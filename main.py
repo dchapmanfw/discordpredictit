@@ -140,9 +140,7 @@ def get_members(guild, guildCollection):
     for person in posts:
         guildCollection.insert_one(person)
 
-
-# basically whenever tries to place a bet it first checks if its past the timer or not, if not then their bets are placed
-# TODO: make this return either a bool or a time
+#TODO[dchapmanfw] UN-shitify this check for bot.end_time once the code base won't break when I do it
 def time_check():
     now = datetime.datetime.now()
     if type(bot.end_time) == datetime.datetime and (now < bot.end_time):
