@@ -101,19 +101,22 @@ def voice_channel_check():
     # restarts the function every 30 min
     timer = Timer(1800, voice_channel_check)
     timer.start()
-  
+
 def print_leader_board(ctx):
-    name_list = list()
-    text = 10*'<:fire_chichen:941754253729497188>'
-    name_list.append(text)
-    for guild in bot.guilds:
-        notNeeded, collection = find_their_guild(guild.name)
-        for user in collection.find().sort('points',-1):
-          text = f'{user["name"]} has {user["points"]} <:fire_chichen:941754253729497188>s '
-          name_list.append(text)
-        text = 10*'<:fire_chichen:941754253729497188>'
-        name_list.append(text)
-        return name_list
+  chichen_string = 10*'<:fire_chichen:941754253729497188>' + '\r\n'
+  serve_up_those_chichen_cut_strings = list()
+  for guild in bot.guilds:
+    print(guild)
+    notNeeded, collection = find_their_guild(guild.name)
+    for user in collection.find().sort('points',-1):
+      chichen_string += f'{user["name"]} has {user["points"]} <:fire_chichen:941754253729497188>s \r\n'
+      if len(chichen_string) > 1600:
+        serve_up_those_chichen_cut_strings.append(chichen_string)
+        chichen_string = ''
+    chichen_string += 10*'<:fire_chichen:941754253729497188>'
+    serve_up_those_chichen_cut_strings.append(chichen_string)
+    return serve_up_those_chichen_cut_strings
+  
 
 '''
 These functions below are used only for refunding,
@@ -435,15 +438,9 @@ class Points(commands.Cog):
       
     @commands.command(name='print', description="print leader board of chichens")
     async def print_chichen_board(self, ctx):
-        leader_board_rows = print_leader_board(ctx)
-        txt = ''
-        for row in leader_board_rows:
-          txt += row
-          txt += '\r\n'
-          if len(txt) > 1600:
-            await ctx.send(txt)
-            txt = ''
-        await ctx.send(txt)
+      chichen_cut_strings = print_leader_board(ctx)
+      for chichen_string in chichen_cut_strings:
+        await ctx.send(chichen_string)
 
       
 keep_alive()
